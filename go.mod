@@ -1,4 +1,4 @@
-module gorabbit
+module github.com/liutme/gorabbit
 
 go 1.20
 
