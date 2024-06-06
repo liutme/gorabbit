@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/liutme/gorabbit"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"gorabbit"
 	"log"
 	"time"
 )

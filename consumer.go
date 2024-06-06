@@ -11,6 +11,7 @@ type IConsumer interface {
 	BuildConsumer() Consumer
 	Listener(delivery *amqp.Delivery)
 }
+
 type Consumer struct {
 	Queue          Queue
 	ConsumerConfig ConsumerConfig

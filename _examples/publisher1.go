@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gorabbit"
+	"github.com/liutme/gorabbit"
 	"log"
 	"time"
 )

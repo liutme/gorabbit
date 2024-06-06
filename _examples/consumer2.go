@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/liutme/gorabbit"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"gorabbit"
 	"log"
 )
 
@@ -15,7 +15,7 @@ const (
 	ExchangeName2 = "exchange-2"
 )
 
-func (c Consume2) BuildConsumer() gorabbit.Consumer {
+func (c *Consume2) BuildConsumer() gorabbit.Consumer {
 	c.Consumer = gorabbit.Consumer{
 		Queue: gorabbit.Queue{
 			Name:       QueueName2,
@@ -27,7 +27,9 @@ func (c Consume2) BuildConsumer() gorabbit.Consumer {
 		},
 		QueueBinding: gorabbit.QueueBinding{
 			Exchange: gorabbit.Exchange{
-				Name: ExchangeName2,
+				Name:    ExchangeName2,
+				Kind:    "direct",
+				Durable: true,
 			},
 			RoutingKey: []string{QueueName2},
 			NoWait:     false,
@@ -36,9 +38,9 @@ func (c Consume2) BuildConsumer() gorabbit.Consumer {
 	return c.Consumer
 }
 
-func (c Consume2) Listener(delivery *amqp.Delivery) {
+func (c *Consume2) Listener(delivery *amqp.Delivery) {
 	body := string(delivery.Body)
-	log.Printf("a message was received：%s", body)
+	log.Printf("a message was received：%s, ConsumeConfig: %s", body, c.Queue.Name)
 }
 
 func main() {
@@ -51,9 +53,11 @@ func main() {
 			VHost:    "/",
 		},
 		Consumers: []gorabbit.IConsumer{
-			Consume2{},
+			&Consume2{},
 		},
 	}
 
 	rabbitClient.Init()
+	forever := make(chan bool)
+	<-forever
 }

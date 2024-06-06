@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/liutme/gorabbit"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"gorabbit"
 	"log"
 )
 
@@ -10,15 +10,10 @@ type Consume1 struct {
 	gorabbit.Consumer
 }
 
-func (c Consume1) Listener(delivery *amqp.Delivery) {
+func (c *Consume1) Listener(delivery *amqp.Delivery) {
 	body := string(delivery.Body)
 	log.Printf("a message was received：%s", body)
 }
-
-const (
-	QueueName    = "queue-1"
-	ExchangeName = "exchange-1"
-)
 
 func main() {
 	rabbitClient := &gorabbit.Client{
@@ -30,23 +25,35 @@ func main() {
 			VHost:    "/",
 		},
 		Consumers: []gorabbit.IConsumer{
-			Consume1{
+			&Consume1{
 				Consumer: gorabbit.Consumer{
 					Queue: gorabbit.Queue{
-						Name:       QueueName,
-						Durable:    true,
+						Name:       "",
+						Durable:    false,
 						AutoDelete: false,
+						Exclusive:  false,
+						NoWait:     false,
+						Args:       nil,
 					},
 					ConsumerConfig: gorabbit.ConsumerConfig{
-						AutoAck: true,
+						Tag:       "",
+						AutoAck:   false,
+						Exclusive: false,
+						NoLocal:   false,
+						NoWait:    false,
+						Args:      nil,
 					},
 					QueueBinding: gorabbit.QueueBinding{
 						Exchange: gorabbit.Exchange{
-							Name:    ExchangeName,
-							Kind:    "direct",
-							Durable: true,
+							Name:       "",
+							Kind:       "",
+							Durable:    false,
+							AutoDelete: false,
+							Internal:   false,
+							NoWait:     false,
+							Args:       nil,
 						},
-						RoutingKey: []string{QueueName},
+						RoutingKey: []string{""},
 					},
 				},
 			},
