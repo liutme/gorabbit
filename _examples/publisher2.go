@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"github.com/liutme/gorabbit"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
@@ -22,6 +24,55 @@ func (p *Publisher2) BuildPublisher() *gorabbit.PublisherConfig {
 		RoutingKey:   RoutingKeyPublisher2,
 	}
 	return &p.PublisherConfig
+}
+
+func (p *Publisher2) SimpleSend(body []byte) error {
+
+	// do something .........
+
+	err := p.CustomSend(&amqp.Publishing{
+		Headers:         nil,
+		ContentType:     "application/octet-stream",
+		ContentEncoding: "",
+		DeliveryMode:    0,
+		Priority:        0,
+		CorrelationId:   "",
+		ReplyTo:         "",
+		Expiration:      "",
+		MessageId:       "",
+		Timestamp:       time.Time{},
+		Type:            "",
+		UserId:          "",
+		AppId:           "",
+		Body:            body,
+	})
+
+	// do something .........
+
+	return err
+}
+
+func (p *Publisher2) CustomSend(msg *amqp.Publishing) error {
+
+	// do something .........
+
+	ch := p.GetCh()
+	if ch.IsClosed() {
+		return errors.New("publisher send failed, because channel is closed")
+	}
+	err := ch.Publish(
+		p.PublisherConfig.ExchangeName, // exchange
+		p.PublisherConfig.RoutingKey,   // routing key
+		p.PublisherConfig.Mandatory,    // mandatory
+		p.PublisherConfig.Immediate,    // immediate
+		*msg)
+	if err != nil {
+		return errors.New(fmt.Sprintf("publisher send failed, error: %v", err))
+	}
+
+	// do something .........
+
+	return nil
 }
 
 func main() {
@@ -47,9 +98,21 @@ func main() {
 		if err != nil {
 			log.Println(err)
 		}
-		err = publisher.CustomSend(&amqp.Publishing{ // 可以使用Publishing内置参数自定义发送消息，没有限制
-			ContentType: "text/plain",
-			Body:        []byte("a test message"),
+		err = publisher.CustomSend(&amqp.Publishing{
+			Headers:         nil,
+			ContentType:     "",
+			ContentEncoding: "",
+			DeliveryMode:    0,
+			Priority:        0,
+			CorrelationId:   "",
+			ReplyTo:         "",
+			Expiration:      "",
+			MessageId:       "",
+			Timestamp:       time.Time{},
+			Type:            "",
+			UserId:          "",
+			AppId:           "",
+			Body:            nil,
 		})
 		if err != nil {
 			log.Println(err)

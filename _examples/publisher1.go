@@ -10,17 +10,14 @@ type Publisher1 struct {
 	gorabbit.Publisher
 }
 
-const (
-	ExchangeNamePublisher1 = "test-exchange-3"
-	RoutingKeyPublisher1   = "queue-3"
-)
-
 func main() {
 	publisher1 := &Publisher1{
 		Publisher: gorabbit.Publisher{
 			PublisherConfig: gorabbit.PublisherConfig{
-				ExchangeName: ExchangeNamePublisher1,
-				RoutingKey:   RoutingKeyPublisher1,
+				ExchangeName: "",
+				RoutingKey:   "",
+				Mandatory:    false,
+				Immediate:    false,
 			},
 		},
 	}
