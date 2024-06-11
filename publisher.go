@@ -71,6 +71,11 @@ func PublisherRegisters(publisher ...IPublisher) {
 func publisherRegister(ps IPublisher) {
 	channels := openChannel()
 	p := ps.BuildPublisher()
+	ch := <-channels
+	if ch.IsClosed() {
+		log.Fatal("publisher registration failed, because the channel listening to the MQ connection channel has been closed")
+	}
+	ps.setCh(ch)
 	go func() {
 		for {
 			select {
