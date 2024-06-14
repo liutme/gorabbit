@@ -4,6 +4,8 @@
 
 # Go RabbitMQ Client Library
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/liutme/gorabbit.svg)](https://pkg.go.dev/github.com/liutme/gorabbit)
+
 This library is a wrapper of [Rabbitmq official library amqp091-go](https://github.com/rabbitmq/amqp091-go). Users do not need to care about connections and channels, but only need to focus on their specific business.
 
 ## Problems solved
@@ -25,7 +27,7 @@ You can view the [_examples](_examples) directory, which contains consumer and p
 
 ## Usage
 
-### Client Descriptiongorabbit.Client
+### Client Description gorabbit.Client
 is a unified and integrated client configuration structure, which includes client connection configuration and role declaration configuration. The specific structure is as follows.
 ```go 
 type Client struct { 

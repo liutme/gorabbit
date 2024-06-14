@@ -4,6 +4,8 @@
 
 # Go RabbitMQ 客户端库
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/liutme/gorabbit.svg)](https://pkg.go.dev/github.com/liutme/gorabbit)
+
 这个库是对[Rabbitmq官方库amqp091-go](https://github.com/rabbitmq/amqp091-go)的封装,使用者无需关心连接和通道,只需要专注于自己的具体业务.
 
 ## 解决的问题
