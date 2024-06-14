@@ -1,121 +1,261 @@
-# Go RabbitMQ 客户端库
+[中文文档](README_CN.md)
 
-这个库是对[Rabbitmq官方库amqp091-go](https://github.com/rabbitmq/amqp091-go)的封装,使用者无需关心连接和通道,只需要专注于自己的具体业务.
+------ 
 
-## 解决的问题
+# Go RabbitMQ Client Library
 
-+ gorabbit实现了连接关闭重连。RabbitMQ团队维护的amqp091-go库并不关心连接状态，当按照简单示例注册客户端，可能不是一个安全的方案。
+This library is a wrapper of [Rabbitmq official library amqp091-go](https://github.com/rabbitmq/amqp091-go). Users do not need to care about connections and channels, but only need to focus on their specific business.
 
-    + 维护一个RabbitMQ连接，并监听连接情况并进行全局缓存，当发生连接断开，会重新连接并更新到全局缓存中
-    + 不同的操作角色会开启单独的通道(channel)，开启通道的同时也会监听它的状态。一旦关闭会重新打开通道。并通知到通道调用者，例如消费者（consumer）
-  
-+ gorabbit将生产者（publisher）进行了封装，使用者只需声明一些配置，则可以进行注册，目前支持发布简单消息和自定义消息
+## Problems solved
 
-+ gorabbit将消费者（consumer）进行了封装，使用者只需声明一些配置，和实现一个监听函数，则可以进行注册。
++ gorabbit implements connection closing and reconnection. The amqp091-go library maintained by the RabbitMQ team does not care about the connection status. When registering a client according to a simple example, it may not be a safe solution.
 
-  + 消费者监听接口函数，当接收到消息，则会回调到实现的监听函数中，只需要关注业务逻辑。
+    + Maintain a RabbitMQ connection, monitor the connection status and cache it globally. When a connection is disconnected, it will reconnect and update to the global cache.
+    + Different operation roles will open separate channels, and while opening the channel, they will also monitor its status. Once closed, the channel will be reopened. And notify the channel caller, such as the consumer
 
-## 示例
++ gorabbit encapsulates the producer (publisher). Users only need to declare some configurations to register. Currently, it supports publishing simple messages and custom messages.
 
-可以查看[_examples](_examples)目录，里面有消费者和生产者示例，也可以查看下面的说明。也可以提交issue。
++ gorabbit encapsulates the consumer (consumer). Users only need to declare some configurations and implement a listening function to register.
 
-## 用法
+    + The consumer listening interface function will be called back to the implemented listening function when a message is received. You only need to focus on the business logic.
 
-### 客户端说明
-gorabbit.Client是统一集成的客户端配置结构，包含了客户端连接配置，角色声明配置，具体结构如下。 
-```go
-type Client struct {
-    Config     ConnectionConfig // 连接配置
-    Consumers  []IConsumer      // 消费者列表
-    Publishers []IPublisher     // 生产者列表
-}
-```
+## Example
 
-### 连接
+You can view the [_examples](_examples) directory, which contains consumer and producer examples, or you can view the instructions below. You can also submit an issue.
 
-使用时需要声明连接配置提供给gorabbit，用于连接和重连。
+## Usage
 
-```go
-rabbitClient := &gorabbit.Client{
-    Config: gorabbit.ConnectionConfig{
-        Host:     "127.0.0.1",
-        Port:     "5672",
-        UserName: "admin",
-        Password: "admin",
-        VHost:    "/",
-    },
-}
-```
+### Client Descriptiongorabbit.Client
+is a unified and integrated client configuration structure, which includes client connection configuration and role declaration configuration. The specific structure is as follows.
+```go 
+type Client struct { 
+    Config ConnectionConfig // Connection configurationConsumers 
+    []IConsumer // Consumer listPublishers 
+    []IPublisher // Producer list 
+} 
+``` 
+
+### Connection
+
+When using, you need to declare the connection configuration to provide to gorabbit for connection and reconnection.
+
+```go 
+rabbitClient := &gorabbit.Client{ 
+    Config: gorabbit.ConnectionConfig{ 
+        Host: "127.0.0.1", 
+        Port: "5672", 
+        UserName: "admin", 
+        Password: "admin", 
+        VHost: "/", 
+    }, 
+} 
+``` 
 
 
-------
+------ 
 
-### 消费者:
+### Consumer:
 
-1. **gorabbit.Consumer说明**
+1. **gorabbit.Consumer Description**
 
-```go
-type Consumer struct {
-	Queue          Queue          // 队列配置
-	ConsumerConfig ConsumerConfig // 消费者配置
-	QueueBinding   QueueBinding   // 队列绑定配置
-}
-```
+```go 
+type Consumer struct { 
+	Queue Queue // Queue configuration 
+	ConsumerConfig ConsumerConfig // Consumer configuration 
+	QueueBinding QueueBinding // Queue binding configuration 
+} 
+``` 
 
-完整的配置集
+Complete configuration set
 ```go
 gorabbit.Consumer{
     Queue: gorabbit.Queue{
-        Name:       "",    // 队列名称
-        Durable:    false, // 是否持久化
-        AutoDelete: false, // 是否自动删除
-        Exclusive:  false, // 是否排他性
-        NoWait:     false, // 是否等待RabbitMQ server确认
-        Args:       nil,   // 其他自定义参数
+        Name: "", // Queue name
+        Durable: false, // Whether to persist
+        AutoDelete: false, // Whether to automatically delete
+        Exclusive: false, // Whether exclusive
+        NoWait: false, // Whether to wait for RabbitMQ server confirmation
+        Args: nil, // Other custom parameters
     },
     ConsumerConfig: gorabbit.ConsumerConfig{
-        Tag:       "",    // 消费者标签
-        AutoAck:   false, // 是否自动确认
-        Exclusive: false, // 是否排他性
-        NoLocal:   false, // 可以不管
-        NoWait:    false, // 是否等待RabbitMQ server确认
-        Args:      nil,   // 其他自定义参数
+        Tag: "", // Consumer tag
+        AutoAck: false, // Automatic confirmation
+        Exclusive: false, // Exclusive
+        NoLocal: false, // No matter
+        NoWait: false, // Wait for RabbitMQ server confirmation
+        Args: nil, // Other custom parameters
     },
     QueueBinding: gorabbit.QueueBinding{
-        Exchange: gorabbit.Exchange{ // 交换机配置，自动创建
-            Name:       "",    // 交换机名称
-            Kind:       "",    // 交换机类型
-            Durable:    false, // 是否持久化
-            AutoDelete: false, // 是否自动删除
-            Internal:   false, // 是否为内部交换机，不用管
-            NoWait:     false, // 是否等待RabbitMQ server确认
-            Args:       nil,   // 其他自定义参数
+        Exchange: gorabbit.Exchange{ // Exchange configuration, automatic creation
+            Name: "", // Exchange name
+            Kind: "", // Exchange type
+            Durable: false, // Whether to persist
+            AutoDelete: false, // Whether to automatically delete
+            Internal: false, // Is it an internal switch, don't worry about it
+            NoWait: false, // Whether to wait for RabbitMQ server confirmation
+            Args: nil, // Other custom parameters
         },
         RoutingKey: []string{QueueName}, // routingkey
-	},
+    },
 }
-```
+``` 
 
-2. **注册一个简单的消费者示例**
+2. **Register a simple consumer example** 
 
-   1. 声明一个消费者结构，并继承gorabbit.Consumer
+   1. Declare a consumer structure and inherit gorabbit.Consumer 
    
-   2. 实现Listener函数
+   2. Implement the Listener function
    
-      ```go
-      type ExampleConsumer struct {
+        ```go
+        type ExampleConsumer struct { 
+           gorabbit.Consumer 
+        } 
+        
+        func (c *ExampleConsumer) Listener(delivery *amqp.Delivery) { 
+           body := string(delivery.Body) 
+           log.Printf("a message was received：%s", body) 
+        } 
+        ``` 
+   
+   3. Then register to the client
+        ```go
+            rabbitClient := &gorabbit.Client{ 
+               Config: gorabbit.ConnectionConfig{ 
+                   Host: "127.0.0.1", 
+                   Port: : "5672", 
+                   UserName: "admin", 
+                   Password: "admin", 
+                   VHost: "/", 
+               }, 
+               Consumers: []gorabbit.IConsumer{ 
+                   &ExampleConsumer{ 
+                       Consumer: gorabbit.Consumer{ 
+                           Queue: gorabbit.Queue{ 
+                               Name: "example-queue-1", 
+                               Durable: true, 
+                               AutoDelete: false, 
+                           }, 
+                           ConsumerConfig: gorabbit.ConsumerConfig{ 
+                               AutoAck: true, 
+                           }, 
+                           QueueBinding: gorabbit.QueueBinding{ 
+                               Exchange: gorabbit.Exchange{ 
+                                   Name: "example-exchange-1", 
+                                   Kind: "direct", 
+                                   Durable: true, 
+                               }, 
+                               RoutingKey: []string{"example-queue-1"}, 
+                           }, 
+                       }, 
+                   }, 
+               }, 
+           } 
+        
+           rabbitClient.Init() 
+        ``` 
+3. **Another way to create a consumer (optional)**   
+
+   1. Declare a consumer struct and inherit gorabbit.Consumer 
+   
+   2. Implement Listener function and BuildConsumer function 
+   
+       ```go 
+      type ExampleConsumer struct { 
            gorabbit.Consumer
-      }
-    
-       func (c *ExampleConsumer) Listener(delivery *amqp.Delivery) {
-           body := string(delivery.Body)
-           log.Printf("a message was received：%s", body)
-       }
-      ```
-   3. 然后注册到客户端中
+      }    
+       
+      func (c *ExampleConsumer) BuildConsumer() gorabbit.Consumer { 
+              c.Consumer = gorabbit.Consumer{ 
+                  Queue: gorabbit.Queue{ 
+                      Name: QueueName2, 
+                      Durable: true, 
+                      AutoDelete: false, 
+                  }, 
+                  ConsumerConfig: gorabbit.ConsumerConfig{ 
+                      AutoAck: true, 
+                  }, 
+                  QueueBinding: gorabbit.QueueBinding{ 
+                      Exchange: gorabbit.Exchange{ 
+                          Name: ExchangeName2, 
+                          Kind: "direct", 
+                          Durable: true, 
+                      }, 
+                      RoutingKey: []string{QueueName2}, 
+                      NoWait: false, 
+                  }, 
+              } 
+              return c.Consumer 
+          } 
+      
+          func (c *ExampleConsumer) Listener(delivery *amqp.Delivery) { 
+              body := string(delivery.Body) 
+              log.Printf("a message was received: %s, ConsumeConfig: %s", body, c.Queue.Name) 
+          } 
+       ``` 
+   3. Then register to the client
+        ```go 
+            rabbitClient 
+             := &gorabbit.Client{ 
+                 Config: gorabbit.ConnectionConfig{ 
+                    Host: "127.0.0.1", 
+                    Port: "5672", 
+                    UserName: "admin", 
+                    Password: "admin", 
+                    VHost: "/", 
+                }, 
+                Consumers: []gorabbit.IConsumer{ 
+                    &ExampleConsumer{}, 
+                }, 
+             } 
+            
+              rabbitClient.Init() 
+        ``` 
+------ 
 
+### Producer 
+
+1. **gorabbit.Publisher Description** 
+
+```go 
+    type Publisher struct { 
+        mtx sync.RWMutex // read-write lock 
+        ch *amqp.Channel // connection channel 
+        PublisherConfig PublisherConfig // producer configuration 
+    } 
+``` 
+
+Complete configuration set
+```go
+    gorabbit.PublisherConfig{
+        ExchangeName: "", // exchange name 
+		RoutingKey: "",   // routingkey
+        Mandatory: false, // Whether to respond to the producer when the corresponding switch and routingkey cannot find the corresponding queue
+        Immediate: false, // Whether to detect the existence of consumers after the message is sent, set to true if there is no consumer in the queue and the message will not be entered into the queue and returned
+    }
+``` 
+2. **A simple producer example** 
+   1. Declare a producer structure and inherit gorabbit.Publisher
+
+        ```go
+            type ExamplePublisher struct {
+                gorabbit.Publisher 
+            }
+        ```
+   
+   2. Then register it in the client
        ```go
-       rabbitClient := &gorabbit.Client{
+           publisher := &ExamplePublisher{
+               Publisher: gorabbit.Publisher{
+                   PublisherConfig: gorabbit.PublisherConfig{
+                       ExchangeName: "",
+                       RoutingKey:   "",
+                       Mandatory:    false,
+                       Immediate:    false,
+                   },
+               },
+           }
+        
+           rabbitClient := &gorabbit.Client{
                Config: gorabbit.ConnectionConfig{
                    Host:     "127.0.0.1",
                    Port:     "5672",
@@ -123,237 +263,102 @@ gorabbit.Consumer{
                    Password: "admin",
                    VHost:    "/",
                },
-               Consumers: []gorabbit.IConsumer{
-                   &ExampleConsumer{
-                       Consumer: gorabbit.Consumer{
-                           Queue: gorabbit.Queue{
-                               Name:       "example-queue-1",
-                               Durable:    true,
-                               AutoDelete: false,
-                           },
-                           ConsumerConfig: gorabbit.ConsumerConfig{
-                               AutoAck: true,
-                           },
-                           QueueBinding: gorabbit.QueueBinding{
-                               Exchange: gorabbit.Exchange{
-                                   Name:    "example-exchange-1",
-                                   Kind:    "direct",
-                                   Durable: true,
-                               },
-                               RoutingKey: []string{"example-queue-1"},
-                           },
-                       },
-                   },
+               Publishers: []gorabbit.IPublisher{
+                   publisher,
                },
            }
-    
+        
            rabbitClient.Init()
+           for {
+               time.Sleep(5 * time.Second)
+               err := publisher.SimpleSend([]byte("a test message"))
+               if err != nil {
+                   log.Println(err)
+               }
+           }
        ```
-3. **另一种创建消费者的方式（可选）**  
 
-   1. 声明一个消费者结构，并继承gorabbit.Consumer
-   
-   2. 实现Listener函数和BuildConsumer函数
+
+
+3. **Another way to create a producer (optional)**
+    1. Declare a producer structure and inherit goribbit.Publisher
+    2. Implement the BuildPublisher function
    
        ```go
-      type ExampleConsumer struct {
-           gorabbit.Consumer
-      }   
-       
-      func (c *ExampleConsumer) BuildConsumer() gorabbit.Consumer {
-              c.Consumer = gorabbit.Consumer{
-                  Queue: gorabbit.Queue{
-                      Name:       QueueName2,
-                      Durable:    true,
-                      AutoDelete: false,
-                  },
-                  ConsumerConfig: gorabbit.ConsumerConfig{
-                      AutoAck: true,
-                  },
-                  QueueBinding: gorabbit.QueueBinding{
-                      Exchange: gorabbit.Exchange{
-                          Name:    ExchangeName2,
-                          Kind:    "direct",
-                          Durable: true,
-                      },
-                      RoutingKey: []string{QueueName2},
-                      NoWait:     false,
-                  },
-              }
-              return c.Consumer
-          }
-      
-          func (c *ExampleConsumer) Listener(delivery *amqp.Delivery) {
-              body := string(delivery.Body)
-              log.Printf("a message was received：%s, ConsumeConfig: %s", body, c.Queue.Name)
-          }
+            type ExamplePublisher struct {
+                gorabbit.Publisher
+            }
+            
+            func (p *ExamplePublisher) BuildPublisher() *gorabbit.PublisherConfig {
+                p.PublisherConfig = PublisherConfig: gorabbit.PublisherConfig{
+                        ExchangeName: "",
+                        RoutingKey: "",
+                        Mandatory: false,
+                        Immediate: false,
+                    },
+                return &p.PublisherConfig
+            }
        ```
-   3. 然后注册到客户端中
-      ```go
-         rabbitClient := &gorabbit.Client{
-             Config: gorabbit.ConnectionConfig{
-                Host:     "127.0.0.1",
-                Port:     "5672",
-                UserName: "admin",
-                Password: "admin",
-                VHost:    "/",
-            },
-            Consumers: []gorabbit.IConsumer{
-                &ExampleConsumer{},
-            },
-         }
-    
-          rabbitClient.Init()
-      ``` 
-------
+       
+    3. Then register to the client
 
-### 生产者
+       ```go
+            publisher := &ExamplePublisher{}
+           
+            rabbitClient := &gorabbit.Client{
+                Config: gorabbit.ConnectionConfig{
+                    Host: "127.0.0.1",
+                    Port: "5672",
+                    UserName: "admin",
+                    Password: "admin",
+                    VHost: "/",
+                },
+                Publishers: []gorabbit.IPublisher{
+                    publisher,
+                },
+            }
+            
+            rabbitClient.Init()
+            for {
+                time.Sleep(5 * time.Second)
+                err := publisher.SimpleSend([]byte("a test message"))
+                if err != nil {
+                    log.Println(err)
+                }
+            }
+       ```
 
-1. **gorabbit.Publisher说明**
+4. **Producer message sending**
 
-```go
-    type Publisher struct {
-        mtx             sync.RWMutex    // 读写锁
-        ch              *amqp.Channel   // 连接通道
-        PublisherConfig PublisherConfig // 生产者配置
-    }
-```
+   Currently, there are only two functions for producers to send messages:
 
-完整的配置集
-```go
-    gorabbit.PublisherConfig{
-        ExchangeName: "", // 交换机名称
-        RoutingKey:   "", // routingkey
-        Mandatory:    false, // 对应的交换机和routingkey无法找到对应的queue时是否响应生产者
-        Immediate:    false, // 消息发送后是否检测消费者存在，设置为true如果队列无消费者不会进入队列并返还消息
-    }
-```
+    1. publisher.SimpleSend, simple message delivery, all parameters are default amqp default, only need to pass in Body
+    2. publisher.CustomSend, custom message delivery, use amqp.Publishing as a parameter, you can customize the delivery parameters
 
-2. **一个简单的生产者示例**
+        ```go
+        publisher.SimpleSend([]byte("a test message"))
+        
+        publisher.CustomSend(&amqp.Publishing{
+            Headers: nil,
+            ContentType: "",
+            ContentEncoding: "",
+            DeliveryMode: 0,
+            Priority: 0,
+            CorrelationId: "",
+            ReplyTo: "",
+            Expiration: "",
+            MessageId: "",
+            Timestamp: time.Time{},
+            Type: "",
+            UserId: "",
+            AppId: "",
+            Body: nil,
+        })
+        ```
 
-   1. 声明一个生产者结构，并继承gorabbit.Publisher
-   
-   ```go
-     type ExamplePublisher struct {
-	        gorabbit.Publisher
-     }
-   ```
-    
-   2. 然后注册到客户端中
-   
-   ```go
-    publisher := &ExamplePublisher{
-        Publisher: gorabbit.Publisher{
-            PublisherConfig: gorabbit.PublisherConfig{
-                ExchangeName: "",
-                RoutingKey:   "",
-                Mandatory:    false,
-                Immediate:    false,
-            },
-        },
-    }
-   
-    rabbitClient := &gorabbit.Client{
-        Config: gorabbit.ConnectionConfig{
-            Host:     "127.0.0.1",
-            Port:     "5672",
-            UserName: "admin",
-            Password: "admin",
-            VHost:    "/",
-        },
-        Publishers: []gorabbit.IPublisher{
-            publisher,
-        },
-    }
-    
-    rabbitClient.Init()
-    for {
-        time.Sleep(5 * time.Second)
-        err := publisher.SimpleSend([]byte("a test message"))
-        if err != nil {
-            log.Println(err)
-        }
-    }
-   ```
+5. **Rewrite the send function**
 
-
-3. **另一种创建生产者的方式（可选）**
-   1. 声明一个生产者结构，并继承gorabbit.Publisher
-   2. 实现BuildPublisher函数
-   ```go
-    type ExamplePublisher struct {
-        gorabbit.Publisher
-    }
-    
-    func (p *ExamplePublisher) BuildPublisher() *gorabbit.PublisherConfig {
-        p.PublisherConfig = PublisherConfig: gorabbit.PublisherConfig{
-                ExchangeName: "",
-                RoutingKey:   "",
-                Mandatory:    false,
-                Immediate:    false,
-            },
-        return &p.PublisherConfig
-    }
-   ```
-   3. 然后注册到客户端中
-
-   ```go
-    publisher := &ExamplePublisher{}
-   
-    rabbitClient := &gorabbit.Client{
-        Config: gorabbit.ConnectionConfig{
-            Host:     "127.0.0.1",
-            Port:     "5672",
-            UserName: "admin",
-            Password: "admin",
-            VHost:    "/",
-        },
-        Publishers: []gorabbit.IPublisher{
-            publisher,
-        },
-    }
-    
-    rabbitClient.Init()
-    for {
-        time.Sleep(5 * time.Second)
-        err := publisher.SimpleSend([]byte("a test message"))
-        if err != nil {
-            log.Println(err)
-        }
-    }
-   ```
-
-4. **生产者的消息发送**
-
-   目前生产者发送消息的函数只有两个
-   
-   1. publisher.SimpleSend，简单的消息投递，参数都是默认amqp默认，只需要传入Body
-   2. publisher.CustomSend，自定义消息投递，使用amqp.Publishing作为参数，可以自定义投递参数
-
-    ```go
-    publisher.SimpleSend([]byte("a test message"))
-    
-    publisher.CustomSend(&amqp.Publishing{
-        Headers:         nil,
-        ContentType:     "",
-        ContentEncoding: "",
-        DeliveryMode:    0,
-        Priority:        0,
-        CorrelationId:   "",
-        ReplyTo:         "",
-        Expiration:      "",
-        MessageId:       "",
-        Timestamp:       time.Time{},
-        Type:            "",
-        UserId:          "",
-        AppId:           "",
-        Body:            nil,
-    })
-    ```
-
-5. **重写发送函数**
-
-发送函数支持重写，支持使用者自定义
+    The sending function supports rewriting and user customization
 
 ```go
 func (p *ExamplePublisher) SimpleSend(body []byte) error {
@@ -361,20 +366,20 @@ func (p *ExamplePublisher) SimpleSend(body []byte) error {
    // do something .........
    
    err := p.CustomSend(&amqp.Publishing{
-      Headers:         nil,
-      ContentType:     "application/octet-stream",
+      Headers: nil,
+      ContentType: "application/octet-stream",
       ContentEncoding: "",
-      DeliveryMode:    0,
-      Priority:        0,
-      CorrelationId:   "",
-      ReplyTo:         "",
-      Expiration:      "",
-      MessageId:       "",
-      Timestamp:       time.Time{},
-      Type:            "",
-      UserId:          "",
-      AppId:           "",
-      Body:            body,
+      DeliveryMode: 0,
+      Priority: 0,
+      CorrelationId: "",
+      ReplyTo: "",
+      Expiration: "",
+      MessageId: "",
+      Timestamp: time.Time{},
+      Type: "",
+      UserId: "",
+      AppId: "",
+      Body: body,
    })
    
    // do something .........
@@ -392,9 +397,9 @@ func (p *ExamplePublisher) CustomSend(msg *amqp.Publishing) error {
    }
    err := ch.Publish(
       p.PublisherConfig.ExchangeName, // exchange
-      p.PublisherConfig.RoutingKey,   // routing key
-      p.PublisherConfig.Mandatory,    // mandatory
-      p.PublisherConfig.Immediate,    // immediate
+      p.PublisherConfig.RoutingKey, // routing key
+      p.PublisherConfig.Mandatory, // mandatory
+      p.PublisherConfig.Immediate, // immediate
       *msg)
    if err != nil {
       return errors.New(fmt.Sprintf("publisher send failed, error: %v", err))
