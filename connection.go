@@ -3,7 +3,6 @@ package gorabbit
 import (
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"log"
 	"sync"
 	"time"
 )
@@ -28,9 +27,9 @@ func (c *Client) createConnections() {
 	// connect
 	conn, err := amqp.Dial(c.Config.uri())
 	if err != nil {
-		log.Fatalf("Failed to connect to RabbitMQ: %s", err)
+		c.Logger.fatal("Failed to connect to RabbitMQ", "err", err)
 	}
-	log.Printf("Connected to RabbitMQ at %s", c.Config.uri())
+	c.Logger.Info("Connected to RabbitMQ", "host", c.Config.Host)
 
 	// reconnect
 	go func() {
@@ -39,18 +38,18 @@ func (c *Client) createConnections() {
 		for {
 			select {
 			case closeErr := <-notifyClose:
-				log.Printf("Connection closed, error: %v, attempting to reconnect...", closeErr)
+				c.Logger.Warn("Connection closed, attempting to reconnect...", "err", closeErr)
 				time.Sleep(time.Second) // 等待一段时间后重连
 				var err error
 				conn, err = amqp.Dial(c.Config.uri())
 				if err != nil {
-					log.Printf("Failed to connect to RabbitMQ: %s", err)
+					c.Logger.Warn("Failed to connect to RabbitMQ", "err", err)
 					continue
 				}
 				notifyClose = make(chan *amqp.Error)
 				conn.NotifyClose(notifyClose)
 				setConnection(conn)
-				log.Println("Reconnected to RabbitMQ")
+				c.Logger.Info("Reconnected to RabbitMQ")
 			}
 		}
 	}()
@@ -77,13 +76,4 @@ func getConnection() *amqp.Connection {
 	connectionInstance.mtx.RLock()
 	defer connectionInstance.mtx.RUnlock()
 	return connectionInstance.conn
-}
-
-func closeConnection() {
-	connectionInstance.mtx.Lock()
-	defer connectionInstance.mtx.Unlock()
-	err := connectionInstance.conn.Close()
-	if err != nil {
-		log.Printf("Failed to close RabbitMQ connection: %s", err)
-	}
 }

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"log"
 	"sync"
 )
 
@@ -62,33 +61,33 @@ func (p *Publisher) CustomSend(msg *amqp.Publishing) error {
 	return nil
 }
 
-func PublisherRegisters(publisher ...IPublisher) {
-	for _, p := range publisher {
-		publisherRegister(p)
+func (c *Client) RegisterPublisher() {
+	if len(c.Publishers) < 1 {
+		c.Logger.Warn("no publishers registered")
+		return
 	}
-}
-
-func publisherRegister(ps IPublisher) {
-	channels := openChannel()
-	p := ps.BuildPublisher()
-	ch := <-channels
-	if ch.IsClosed() {
-		log.Fatal("publisher registration failed, because the channel listening to the MQ connection channel has been closed")
-	}
-	ps.setCh(ch)
-	go func() {
-		for {
-			select {
-			case ch, ok := <-channels:
-				if !ok {
-					log.Fatal("publisher stopped, because the channel listening to the MQ connection channel has been closed")
-				}
-				if ch.IsClosed() {
-					continue
-				}
-				ps.setCh(ch)
-				log.Printf("The publisher registered successfully, RoutingKey: %s", p.RoutingKey)
-			}
+	for _, publisher := range c.Publishers {
+		channels := openChannel(c)
+		p := publisher.BuildPublisher()
+		ch := <-channels
+		if ch.IsClosed() {
+			c.Logger.fatal("publisher registration failed, because the channel listening to the MQ connection channel has been closed")
 		}
-	}()
+		publisher.setCh(ch)
+		go func() {
+			for {
+				select {
+				case ch, ok := <-channels:
+					if !ok {
+						c.Logger.fatal("publisher stopped, because the channel listening to the MQ connection channel has been closed")
+					}
+					if ch.IsClosed() {
+						continue
+					}
+					publisher.setCh(ch)
+					c.Logger.Info("The publisher registered successfully", "RoutingKey", p.RoutingKey)
+				}
+			}
+		}()
+	}
 }

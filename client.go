@@ -5,6 +5,7 @@ type Client struct {
 	Config     ConnectionConfig
 	Consumers  []IConsumer
 	Publishers []IPublisher
+	Logger     ILogger
 }
 
 /*
@@ -12,13 +13,13 @@ Init Initialization function.
 creating connections, consumer registration, and publisher registration.
 */
 func (c *Client) Init() {
+	if c.Logger == nil {
+		c.Logger = Logger{}
+	}
 
 	c.createConnections()
 
-	if len(c.Consumers) > 0 {
-		ConsumerRegisters(c.Consumers...)
-	}
-	if len(c.Publishers) > 0 {
-		PublisherRegisters(c.Publishers...)
-	}
+	c.RegisterConsumer()
+
+	c.RegisterPublisher()
 }

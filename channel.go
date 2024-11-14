@@ -13,14 +13,14 @@ At the same time, the function manages the connection status of the MQ connectio
 Once it detects that the MQ connection channel is closed, it will reopen a new MQ connection channel and resend it to the Golang channel,
 allowing the caller to regain a healthy MQ connection channel without having to worry about its health status.
 */
-func openChannel() chan *amqp.Channel {
+func openChannel(c *Client) chan *amqp.Channel {
 	conn := getConnection()
 	if conn == nil || conn.IsClosed() {
-		log.Fatalf("Failed to open a channel,because connection is nil or closed")
+		c.Logger.fatal("Failed to open a channel,because connection is nil or closed")
 	}
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Fatalf(err.Error())
+		c.Logger.fatal("Failed to open a channel", "err", err)
 	}
 
 	channels := make(chan *amqp.Channel, 1)
@@ -31,11 +31,11 @@ func openChannel() chan *amqp.Channel {
 		for {
 			select {
 			case closeErr := <-notifyClose:
-				log.Printf("Channel closed, error: %v, attempting to reopen channel...", closeErr)
+				c.Logger.Warn("Channel closed,attempting to reopen channel...", "err", closeErr)
 				time.Sleep(2 * time.Second) // 等待一段时间后重连
 				conn = getConnection()
 				if conn == nil || conn.IsClosed() {
-					log.Printf("Failed to reopen a channel,because connection is nil or closed")
+					c.Logger.Warn("Failed to reopen a channel,because connection is nil or closed")
 					continue
 				}
 				ch, err = conn.Channel()
@@ -46,7 +46,7 @@ func openChannel() chan *amqp.Channel {
 				notifyClose = make(chan *amqp.Error)
 				ch.NotifyClose(notifyClose)
 				channels <- ch
-				log.Println("1 channel has been reopened")
+				c.Logger.Warn("1 channel has been reopened")
 			}
 		}
 	}()
